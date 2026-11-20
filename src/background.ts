@@ -36,7 +36,7 @@ OBR.onReady(async () => {
     id: TOOL_ID,
     icons: [
       {
-        icon: '/icon.svg',
+        icon: '/ultitracker-icon.svg',
         label: 'UltiTracker',
       },
     ],
@@ -67,7 +67,7 @@ OBR.onReady(async () => {
     id: CONTEXT_REMOVE_ID,
     icons: [
       {
-        icon: '/icon.svg',
+        icon: '/ultitracker-icon.svg',
         label: 'Remove Initiative',
         filter: {
           every: [
