@@ -1,0 +1,9 @@
+{
+  "name": "UltiTracker",
+  "version": "1.0.0",
+  "manifest_version": 1,
+  "author": "Fagundes",
+  "description": "Fabula Ultima Initiative Tracker for Owlbear Rodeo.",
+  "icon": "/icon.svg",
+  "background_url": "/background.html"
+}
