@@ -1,3 +1,4 @@
+import { HERO_SPRITES as DISCOVERED_HEROES, VILLAIN_SPRITES as DISCOVERED_VILLAINS } from 'virtual:sprites';
 import type { CombatSide, SpriteOption } from '../types/tracker';
 
 export interface UiSpriteAsset {
@@ -45,43 +46,25 @@ export function getBarSpriteForSlots(slotCount: number): UiSpriteAsset {
 }
 
 /**
- * Extensible catalog of hero sprites.
- * Add new entries here (with assets placed in /public/assets/sprites/) to
- * automatically surface new hero image options in the UI and on the map.
+ * Automatically discovered from `public/assets/sprites/heroes/`.
+ * Drop any new sprite image into that folder and it appears here automatically.
+ * Files are sorted naturally, so `1_Terra.png` is the default first option.
  */
-export const HERO_SPRITES: SpriteOption[] = [
-  {
-    id: 'hero-default',
-    label: 'Classic Hero',
-    src: '/assets/sprites/hero.png',
-    side: 'hero',
-    width: 288,
-    height: 416,
-  },
-];
+export const HERO_SPRITES: SpriteOption[] = DISCOVERED_HEROES;
 
 /**
- * Extensible catalog of villain / enemy sprites.
- * Add new entries here (with assets placed in /public/assets/sprites/) to
- * automatically surface new enemy image options in the UI and on the map.
+ * Automatically discovered from `public/assets/sprites/villains/`.
+ * Drop any new sprite image into that folder and it appears here automatically.
+ * Files are sorted naturally, so `1_Kefka.png` is the default first option.
  */
-export const VILLAIN_SPRITES: SpriteOption[] = [
-  {
-    id: 'villain-default',
-    label: 'Classic Villain',
-    src: '/assets/sprites/villain.png',
-    side: 'villain',
-    width: 256,
-    height: 384,
-  },
-];
+export const VILLAIN_SPRITES: SpriteOption[] = DISCOVERED_VILLAINS;
 
 export function getSpritesBySide(side: CombatSide): SpriteOption[] {
   return side === 'hero' ? HERO_SPRITES : VILLAIN_SPRITES;
 }
 
 export function getDefaultSpriteId(side: CombatSide): string {
-  return getSpritesBySide(side)[0].id;
+  return getSpritesBySide(side)[0]?.id ?? '';
 }
 
 export function getSpriteById(side: CombatSide, spriteId?: string): SpriteOption {

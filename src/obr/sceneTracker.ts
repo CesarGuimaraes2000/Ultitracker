@@ -59,6 +59,14 @@ export function getTrackerItemMeta(item: Item): TrackerItemMeta | null {
   return rec as unknown as TrackerItemMeta;
 }
 
+function inferImageMime(src: string): string {
+  const lower = src.toLowerCase();
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  return 'image/png';
+}
+
 function buildProportionalImage(params: {
   id: string;
   name: string;
@@ -77,7 +85,7 @@ function buildProportionalImage(params: {
     {
       width: params.width,
       height: params.height,
-      mime: 'image/png',
+      mime: inferImageMime(params.src),
       url: resolveAssetUrl(params.src),
     },
     {

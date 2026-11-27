@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import OBR from '@owlbear-rodeo/sdk';
-import { Minus, Plus } from 'lucide-react';
+import { ChevronDown, Minus, Plus } from 'lucide-react';
 import { POPOVER_ID } from '../constants/keys';
 import {
   HERO_SPRITES,
@@ -62,42 +62,81 @@ function TurnField({ label, value, onChange }: TurnFieldProps) {
   );
 }
 
-interface SpritePickerProps {
+interface SpriteTriggerProps {
   label: string;
-  options: SpriteOption[];
-  selectedId: string;
-  onSelect: (id: string) => void;
+  selected: SpriteOption;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-function SpritePicker({ label, options, selectedId, onSelect }: SpritePickerProps) {
-  if (options.length <= 1) return null;
-
+function SpriteTrigger({ label, selected, isOpen, onToggle }: SpriteTriggerProps) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-normal text-[var(--obr-text-secondary)]">
         {label}
       </span>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((opt) => {
-          const active = opt.id === selectedId;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => onSelect(opt.id)}
-              title={opt.label}
-              className={`flex items-center gap-1.5 rounded-xl border px-2 py-1 text-xs transition ${
-                active
-                  ? 'border-[var(--obr-primary)] bg-[color-mix(in_srgb,var(--obr-primary)_16%,transparent)] text-[var(--obr-text-primary)]'
-                  : 'border-transparent bg-[var(--obr-surface)] text-[var(--obr-text-secondary)] hover:bg-[var(--obr-surface-hover)]'
-              }`}
-            >
-              <PixelSprite src={opt.src} alt={opt.label} boxClassName="w-4 h-6" />
-              <span className="max-w-[84px] truncate">{opt.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label={`Choose ${label}`}
+        title={selected.label}
+        className={`flex h-11 w-full items-center justify-between rounded-xl border px-3 transition ${
+          isOpen
+            ? 'border-[var(--obr-primary)] bg-[color-mix(in_srgb,var(--obr-primary)_14%,transparent)]'
+            : 'border-[var(--obr-border)] bg-[var(--obr-surface)] hover:bg-[var(--obr-surface-hover)]'
+        }`}
+      >
+        <PixelSprite
+          src={selected.src}
+          alt={selected.label}
+          boxClassName="w-6 h-8"
+          imgClassName="object-bottom"
+        />
+        <ChevronDown
+          className={`h-4 w-4 text-[var(--obr-text-secondary)] transition-transform ${
+            isOpen ? 'rotate-180 text-[var(--obr-primary)]' : ''
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+interface SpriteGridProps {
+  options: SpriteOption[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}
+
+function SpriteGrid({ options, selectedId, onSelect }: SpriteGridProps) {
+  return (
+    <div className="grid max-h-36 grid-cols-4 gap-1.5 overflow-y-auto rounded-xl border border-[var(--obr-border)] bg-[var(--obr-surface)] p-2">
+      {options.map((opt) => {
+        const active = opt.id === selectedId;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onSelect(opt.id)}
+            title={opt.label}
+            aria-label={opt.label}
+            aria-pressed={active}
+            className={`flex h-12 items-center justify-center rounded-lg border transition ${
+              active
+                ? 'border-[var(--obr-primary)] bg-[color-mix(in_srgb,var(--obr-primary)_20%,transparent)]'
+                : 'border-transparent hover:bg-[var(--obr-surface-hover)]'
+            }`}
+          >
+            <PixelSprite
+              src={opt.src}
+              alt={opt.label}
+              boxClassName="w-7 h-10"
+              imgClassName="object-bottom"
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -119,8 +158,10 @@ export function InitiativeTracker() {
   const [draftWinner, setDraftWinner] = useState<CombatSide>(state.winner);
   const [draftHeroSpriteId, setDraftHeroSpriteId] = useState(state.heroSpriteId);
   const [draftVillainSpriteId, setDraftVillainSpriteId] = useState(state.villainSpriteId);
+  const [openPicker, setOpenPicker] = useState<CombatSide | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const activeSlotRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -145,7 +186,26 @@ export function InitiativeTracker() {
     });
   }, [state.activeIndex, state.slots.length]);
 
-  const hasMultipleSprites = HERO_SPRITES.length > 1 || VILLAIN_SPRITES.length > 1;
+  useEffect(() => {
+    if (!OBR.isAvailable) return;
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const syncHeight = () => {
+      if (!OBR.isReady) return;
+      const desired = Math.min(460, Math.max(260, Math.ceil(el.scrollHeight)));
+      void OBR.popover.setHeight(POPOVER_ID, desired);
+    };
+
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(el);
+    OBR.onReady(syncHeight);
+
+    return () => observer.disconnect();
+  }, [openPicker]);
+
+  const selectedHero = getSpriteById('hero', draftHeroSpriteId);
+  const selectedVillain = getSpriteById('villain', draftVillainSpriteId);
   const isObr = OBR.isAvailable || syncMode === 'obr';
 
   const handleApply = async (e: React.FormEvent) => {
@@ -169,7 +229,10 @@ export function InitiativeTracker() {
   };
 
   return (
-    <div className="flex h-full w-full flex-col justify-between gap-3 overflow-y-auto p-4 text-[var(--obr-text-primary)]">
+    <div
+      ref={containerRef}
+      className="flex w-full flex-col gap-3 p-4 text-[var(--obr-text-primary)]"
+    >
       <form onSubmit={handleApply} className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3">
           <TurnField
@@ -184,22 +247,48 @@ export function InitiativeTracker() {
           />
         </div>
 
-        {hasMultipleSprites && (
-          <div className="grid grid-cols-1 gap-2">
-            <SpritePicker
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-3">
+            <SpriteTrigger
               label="Hero Sprite"
-              options={HERO_SPRITES}
-              selectedId={draftHeroSpriteId}
-              onSelect={setDraftHeroSpriteId}
+              selected={selectedHero}
+              isOpen={openPicker === 'hero'}
+              onToggle={() =>
+                setOpenPicker((prev) => (prev === 'hero' ? null : 'hero'))
+              }
             />
-            <SpritePicker
+            <SpriteTrigger
               label="Enemy Sprite"
-              options={VILLAIN_SPRITES}
-              selectedId={draftVillainSpriteId}
-              onSelect={setDraftVillainSpriteId}
+              selected={selectedVillain}
+              isOpen={openPicker === 'villain'}
+              onToggle={() =>
+                setOpenPicker((prev) => (prev === 'villain' ? null : 'villain'))
+              }
             />
           </div>
-        )}
+
+          {openPicker === 'hero' && (
+            <SpriteGrid
+              options={HERO_SPRITES}
+              selectedId={selectedHero.id}
+              onSelect={(id) => {
+                setDraftHeroSpriteId(id);
+                setOpenPicker(null);
+              }}
+            />
+          )}
+
+          {openPicker === 'villain' && (
+            <SpriteGrid
+              options={VILLAIN_SPRITES}
+              selectedId={selectedVillain.id}
+              onSelect={(id) => {
+                setDraftVillainSpriteId(id);
+                setOpenPicker(null);
+              }}
+            />
+          )}
+        </div>
 
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-normal text-[var(--obr-text-secondary)]">

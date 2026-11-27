@@ -44,8 +44,8 @@ OBR.onReady(async () => {
       void OBR.popover.open({
         id: POPOVER_ID,
         url: '/',
-        width: 260,
-        height: 225,
+        width: 264,
+        height: 298,
         anchorElementId: elementId,
         anchorOrigin: {
           horizontal: 'LEFT',
